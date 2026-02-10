@@ -1,79 +1,29 @@
 name: Renew Agentforce Dev Org Lease
 run-name: ${{ github.actor }} triggered dev org renewal build
-
+#on: [push]
 on:
   schedule:
-    - cron: '30 20 * * MON'
+    - cron:  '30 20 * * MON'
   workflow_dispatch:
-
 jobs:
   dev-org-renew:
     runs-on: ubuntu-latest
     environment: AFDevOrgRenew
-
     steps:
       - uses: actions/checkout@v4
-        with:
+        with: 
           ref: main
-
       - uses: actions/setup-node@v3
         with:
           node-version: '20'
-
-      - name: Install CLI
+      - name: 'Install CLI'
         run: npm install @salesforce/cli --location=global
-
-      - name: CLI Version
-        run: sf --version
-
-      - name: Authenticate to Agentforce org
+      - run: sf --version
+      - name: 'Authenticate to Agentforce org'
         run: |
-          echo "${{ secrets.AGENTFORCE_DEV_ORG_URL }}" > ./AGENTFORCE_DEV_ORG_URL.txt
-          sf org login sfdx-url -f ./AGENTFORCE_DEV_ORG_URL.txt -a AFDevOrgRenew -d
-
-      - name: Query data
+            echo ${{ secrets.AGENTFORCE_DEV_ORG_URL }} > ./AGENTFORCE_DEV_ORG_URL.txt
+            ls -al ./AGENTFORCE_DEV_ORG_URL.txt
+            sf org login sfdx-url -f ./AGENTFORCE_DEV_ORG_URL.txt -a AFDevOrgRenew -d
+      - name: 'Query data'
         run: |
-          mkdir -p logs
-          sf data query --query "select name from organization" -o AFDevOrgRenew 2>&1 | tee logs/query-data.log
-
-      # Upload the logs as an artifact even if prior steps fail
-      - name: Upload logs artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-org-renew-logs
-          path: logs/**
-          if-no-files-found: warn
-          retention-days: 14
-
-      # Send email even if the job fails/cancels
-      - name: Send email notification
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-
-          to: you@example.com
-          from: GitHub Actions <actions@example.com>
-
-          subject: "[${{ job.status }}] Renew Agentforce Dev Org Lease — ${{ github.repository }}"
-          body: |
-            Workflow: ${{ github.workflow }}
-            Job: ${{ github.job }}
-            Status: ${{ job.status }}
-
-            Repo: ${{ github.repository }}
-            Branch/Ref: ${{ github.ref }}
-            Actor: ${{ github.actor }}
-
-            Run URL:
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            Logs Artifact Name:
-            dev-org-renew-logs
-
-            (Open the run URL above -> Artifacts section -> download dev-org-renew-logs)
+            sf data query --query "select name from organization" -o AFDevOrgRenew
